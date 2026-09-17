@@ -1,0 +1,117 @@
+{
+  "support_triage": {
+    "model": "jev-1.13.0",
+    "state": {
+      "ticket": {
+        "message": "The same order appears twice on my card statement. Please refund the duplicate charge.",
+        "account_context": "Customer can sign in and has the receipt."
+      }
+    },
+    "questions": {
+      "department": {
+        "type": "choice",
+        "instructions": "Which team should handle the primary remedy requested in ticket.message?",
+        "criteria": {
+          "billing": {
+            "what": "Charges, payment disputes, invoices and refunds",
+            "not_for": "Tracking or login problems"
+          },
+          "delivery": {
+            "what": "Shipping, tracking or missing parcels",
+            "not_for": "Refunding a duplicate card charge"
+          },
+          "account": {
+            "what": "Login and account access problems",
+            "not_for": "Payment disputes"
+          },
+          "other": "A clear request outside these teams",
+          "insufficient_context": "The requested remedy cannot be determined"
+        }
+      },
+      "refund_requested": {
+        "type": "noul",
+        "instructions": "Does ticket.message request that money be returned to the customer?",
+        "criteria": {
+          "true": "The customer explicitly asks for a refund or reimbursement",
+          "false": "The customer asks only for information or another action, or explicitly says no refund is wanted"
+        }
+      },
+      "resolution_complexity": {
+        "type": "score",
+        "instructions": "Based only on ticket and the task described, how complex is resolving the requested remedy?",
+        "criteria": [
+          "A standard information lookup answers the request",
+          "A standard account or transaction procedure resolves the request after checking records",
+          "An unusual exception or disputed facts require specialist investigation"
+        ]
+      }
+    }
+  },
+  "evidence_filtering": {
+    "model": "jev-1.13.0",
+    "state": {
+      "query": "How do I rotate an API key without interrupting requests?",
+      "candidates": {
+        "p1": {
+          "text": "Create a second active key, deploy it to clients, confirm traffic has migrated, then revoke the old key."
+        },
+        "p2": {
+          "text": "The service supports two simultaneously active API keys for each project."
+        },
+        "p3": {
+          "text": "Invoices are available on the first day of each month."
+        }
+      }
+    },
+    "questions": {
+      "use_p1": {
+        "type": "noul",
+        "instructions": "Does candidates.p1.text contain information that helps answer query, including a required prerequisite or constraint? Judge this passage independently; several passages may be useful.",
+        "criteria": {
+          "true": "Provides a relevant step, prerequisite, constraint or direct answer",
+          "false": "Merely shares vocabulary, is unrelated, or provides no useful information"
+        }
+      },
+      "use_p2": {
+        "type": "noul",
+        "instructions": "Does candidates.p2.text contain information that helps answer query, including a required prerequisite or constraint? Judge this passage independently; several passages may be useful.",
+        "criteria": {
+          "true": "Provides a relevant step, prerequisite, constraint or direct answer",
+          "false": "Merely shares vocabulary, is unrelated, or provides no useful information"
+        }
+      },
+      "use_p3": {
+        "type": "noul",
+        "instructions": "Does candidates.p3.text contain information that helps answer query, including a required prerequisite or constraint? Judge this passage independently; several passages may be useful.",
+        "criteria": {
+          "true": "Provides a relevant step, prerequisite, constraint or direct answer",
+          "false": "Merely shares vocabulary, is unrelated, or provides no useful information"
+        }
+      }
+    }
+  },
+  "source_value_selection": {
+    "model": "jev-1.13.0",
+    "state": {
+      "document": "Invoice 4471. Seller: Maple Parts. Bill to: Cedar Works. Deliver to: North Depot.",
+      "spans": {
+        "s1": "Maple Parts",
+        "s2": "Cedar Works",
+        "s3": "North Depot"
+      }
+    },
+    "questions": {
+      "billing_customer": {
+        "type": "choice",
+        "instructions": "Which supplied span identifies the customer being billed in document? Choose the bill-to entity, not the seller or delivery destination.",
+        "criteria": {
+          "s1": "The text in spans.s1",
+          "s2": "The text in spans.s2",
+          "s3": "The text in spans.s3",
+          "not_stated": "No billing customer is stated in the source",
+          "ambiguous": "A billing customer may be stated but the supplied evidence does not distinguish the candidates"
+        }
+      }
+    }
+  }
+}
