@@ -10,7 +10,7 @@
     "questions": {
       "department": {
         "type": "choice",
-        "instructions": "Which team should handle the primary remedy requested in ticket.message?",
+        "instructions": "Which team should handle the primary remedy requested in `ticket.message`?",
         "criteria": {
           "billing": {
             "what": "Charges, payment disputes, invoices and refunds",
@@ -30,7 +30,7 @@
       },
       "refund_requested": {
         "type": "noul",
-        "instructions": "Does ticket.message request that money be returned to the customer?",
+        "instructions": "Does `ticket.message` request that money be returned to the customer?",
         "criteria": {
           "true": "The customer explicitly asks for a refund or reimbursement",
           "false": "The customer asks only for information or another action, or explicitly says no refund is wanted"
@@ -38,7 +38,7 @@
       },
       "resolution_complexity": {
         "type": "score",
-        "instructions": "Based only on ticket and the task described, how complex is resolving the requested remedy?",
+        "instructions": "Based only on `ticket` and the task described, how complex is resolving the requested remedy?",
         "criteria": [
           "A standard information lookup answers the request",
           "A standard account or transaction procedure resolves the request after checking records",
@@ -66,7 +66,7 @@
     "questions": {
       "use_p1": {
         "type": "noul",
-        "instructions": "Does candidates.p1.text contain information that helps answer query, including a required prerequisite or constraint? Judge this passage independently; several passages may be useful.",
+        "instructions": "Does `candidates.p1.text` contain information that helps answer `query`, including a required prerequisite or constraint? Judge this passage independently; several passages may be useful.",
         "criteria": {
           "true": "Provides a relevant step, prerequisite, constraint or direct answer",
           "false": "Merely shares vocabulary, is unrelated, or provides no useful information"
@@ -74,7 +74,7 @@
       },
       "use_p2": {
         "type": "noul",
-        "instructions": "Does candidates.p2.text contain information that helps answer query, including a required prerequisite or constraint? Judge this passage independently; several passages may be useful.",
+        "instructions": "Does `candidates.p2.text` contain information that helps answer `query`, including a required prerequisite or constraint? Judge this passage independently; several passages may be useful.",
         "criteria": {
           "true": "Provides a relevant step, prerequisite, constraint or direct answer",
           "false": "Merely shares vocabulary, is unrelated, or provides no useful information"
@@ -82,7 +82,7 @@
       },
       "use_p3": {
         "type": "noul",
-        "instructions": "Does candidates.p3.text contain information that helps answer query, including a required prerequisite or constraint? Judge this passage independently; several passages may be useful.",
+        "instructions": "Does `candidates.p3.text` contain information that helps answer `query`, including a required prerequisite or constraint? Judge this passage independently; several passages may be useful.",
         "criteria": {
           "true": "Provides a relevant step, prerequisite, constraint or direct answer",
           "false": "Merely shares vocabulary, is unrelated, or provides no useful information"
@@ -103,11 +103,11 @@
     "questions": {
       "billing_customer": {
         "type": "choice",
-        "instructions": "Which supplied span identifies the customer being billed in document? Choose the bill-to entity, not the seller or delivery destination.",
+        "instructions": "Which supplied span identifies the customer being billed in `document`? Choose the bill-to entity, not the seller or delivery destination.",
         "criteria": {
-          "s1": "The text in spans.s1",
-          "s2": "The text in spans.s2",
-          "s3": "The text in spans.s3",
+          "s1": "The text in `spans.s1`",
+          "s2": "The text in `spans.s2`",
+          "s3": "The text in `spans.s3`",
           "not_stated": "No billing customer is stated in the source",
           "ambiguous": "A billing customer may be stated but the supplied evidence does not distinguish the candidates"
         }

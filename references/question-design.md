@@ -1,12 +1,14 @@
 # Designing questions that Jev can answer usefully
 
-Use current [primitives](https://docs.typesafe.ai/primitives), [Choice](https://docs.typesafe.ai/primitives/choice), [Noul](https://docs.typesafe.ai/primitives/noul), [Score](https://docs.typesafe.ai/primitives/score), and [structured question guidance](https://docs.typesafe.ai/primitives/advanced). These examples are proposed designs, not measured outputs.
+Use current [primitives](https://docs.typesafe.ai/primitives), [Choice](https://docs.typesafe.ai/primitives/choice), [Noul](https://docs.typesafe.ai/primitives/noul), [Score](https://docs.typesafe.ai/primitives/score), and [structured question guidance](https://docs.typesafe.ai/primitives/advanced). The request examples here are designs to adapt; none has recorded model output.
 
 ## Work backward from the action
 
 What will software do: choose one handler, retain all useful passages, flag a defect, rank utility, or select a source value? That determines the primitive. “Make this workflow smarter” is not a question.
 
-State contains evidence: named records, current facts, candidate text, relationships and context. Instructions define the judgment. Criteria define the answer boundary. Retrieve focused evidence first. Add relevant context when errors expose a gap, not every document available.
+State contains evidence: named records, current facts, candidate text, relationships and context. Instructions define the judgment. Criteria define the answer boundary. Point instructions at state with backticked paths such as `` `ticket.message` `` or `` `candidates.p2.text` ``; the docs use that convention so there is no doubt which value a question is about.
+
+Retrieve focused evidence first. Add context when errors expose a gap, not every document available: unrelated state lowers accuracy, and the window is finite (64k tokens for state plus all questions, 32k for state plus the longest question in Jev 1.13; check current limits). When the evidence will not fit, filter or retrieve harder, trim records to the fields the questions use, or split candidates into groups that each carry the shared query. Splitting repeats the shared state, so count that in cost.
 
 Build a compact contract: target, evidence, judgment, answer meaning, exclusions, missing-data behavior. Keep a short string when clear. Use an object when named fields separate tangled definitions or examples. Long structured prompts are not mandatory.
 
@@ -18,7 +20,7 @@ Bad: “Classify this,” with billing, support and urgent as options. Billing i
 
 Better: ask for the primary requested remedy, define comparable departments, and ask urgency separately. Contrast neighboring options with consistent `what`, `not_for`, and `examples` fields where needed. Check coverage: Jev cannot choose a missing candidate.
 
-Do not use a Choice distribution as independent relevance scores for many candidates. It allocates probability among competing winners. Use one Noul per candidate if several can qualify, or per-item Scores for graded utility. Above the documented option limit, retrieve candidates or use hierarchical selection, measuring candidate recall.
+A Choice distribution allocates probability among competing winners and sums to 1. That makes it a good cheap ranker and a poor inclusion test. The official [semantic find](https://docs.typesafe.ai/cookbooks/semantic_find) and [skill suggestion](https://docs.typesafe.ai/cookbooks/skill_suggestion) cookbooks rank 218 line IDs and 182 skills with a single Choice, then cover its blind spots: some option always ranks first even when nothing matches, so they add a Noul asking whether any answer exists, and skill suggestion re-checks the top three with per-item Nouls over fuller text. Use that shape when you want a shortlist or one best item from a long list. When several items can all qualify and each must be kept or dropped, as in memory or passage selection, ask one Noul per candidate or comparable per-item Scores; community tests found Choice ranking dropped relevant items there. Above the documented option limit, retrieve candidates or use [hierarchical selection](https://docs.typesafe.ai/cookbooks/hierarchical_classification), and measure candidate recall.
 
 ## Noul: is the condition true?
 
@@ -26,7 +28,7 @@ Use positive, explicit conditions: near 1 means yes; near 0 means no. Near 0.5 m
 
 Bad: “Is this not an unimportant message?”
 
-Better: “Does ticket.message explicitly request a response before the supplied deadline?” Define yes/no in criteria and compute deadline ordering in code. If the desired judgment is importance, use a defined utility Score instead.
+Better: “Does `ticket.message` explicitly request a response before the supplied deadline?” Define yes/no in criteria and compute deadline ordering in code, because Jev reads dates as text rather than ordered quantities. The same goes for arithmetic and counting: pass `minutes_until_deadline: 42`, not two timestamps. If the desired judgment is importance, use a defined utility Score instead.
 
 For multi-label tasks, one complete question per label; for retrieval, one per candidate. Name the target inside instructions: keys such as `candidate_7` are not instructions. Preserve both sides of relationships being judged.
 
@@ -49,7 +51,7 @@ Use separate dimensions when code will weight them differently. Keep the rubric 
 
 ## Batch and compose
 
-Independent questions over shared state belong in one request. Extra questions still cost tokens and can hit context/rate limits. For speculative branches, state the premise: “If the billing workflow handles this request, which supplied invoice does the customer refer to?” Code uses it only on that branch.
+Independent questions over shared state belong in one request. Extra questions still cost tokens and count toward the context window and rate limits. For speculative branches, state the premise: “If the billing workflow handles this request, which supplied invoice does the customer refer to?” Code uses it only on that branch.
 
 Bad: `q2: Why did q1 choose billing?` in the same request. Questions cannot see each other's answers, and Jev cannot write the explanation.
 
@@ -59,7 +61,7 @@ Weighted sums allow preferences to compensate; hard requirements cannot be avera
 
 ## Ready-to-adapt request examples
 
-[example-requests.json](../assets/example-requests.json) contains complete proposed native HTTP bodies for `POST https://api.typesafe.ai/v1/systemone`. It pins the model verified when written; refresh before running. All state is synthetic. No credentials or predicted outputs are included.
+[example-requests.json](../assets/example-requests.json) contains complete proposed native HTTP bodies for `POST https://api.typesafe.ai/v1/systemone`. It pins the model verified when written; refresh before running. All state is synthetic and no outputs are included. [worked-question-pack.md](worked-question-pack.md) turns the first example into a full deliverable with composition code, and [run_cases.py](../scripts/run_cases.py) can send these bodies when the user wants a live check.
 
 1. **Support triage:** Choice department, Noul refund request, Score resolution complexity. Code selects a handler, then a specialist/review path. A refund request is not payment authorization; a low Noul is not a service failure.
 2. **Evidence filtering:** one Noul per candidate. Retain multiple useful passages with a validated threshold and budget. Do not force exactly one item or fill the budget with irrelevant results. Add comparable per-item Scores if utility ranking matters.
@@ -73,4 +75,4 @@ Inspect whether required evidence/candidates existed before changing prompts. Id
 
 There is no universally best question format or threshold. Recommend a reasoned starting design, then use quality, coverage, cost and resulting application behavior to choose revisions.
 
-[question-cases.json](../assets/question-cases.json) supplies nine human-authored boundary cases for these examples. They are evaluation seeds, not model test results.
+[question-cases.json](../assets/question-cases.json) supplies nine human-authored boundary cases for these examples. They are evaluation seeds written by hand.

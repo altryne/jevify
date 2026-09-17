@@ -28,7 +28,7 @@ Many LLM calls end with a tiny decision: choose a tool, keep a passage, flag a d
 
 **The opportunity is doing useful work more often, across more candidates, with less waiting and lower cost.** An LLM can do many of the same tasks. Jevify helps you find where Jev's economics change what is practical, then design an honest comparison.
 
-It combines **current TypeSafe documentation**, **community experiments from the past three days**, and **your application** to produce concrete question packs and integration ideas. It works with an existing repository or a plain-language description.
+It combines **current TypeSafe documentation**, **recent first-hand community experiments**, and **your application** to produce concrete question packs and integration ideas. It works with an existing repository or a plain-language description.
 
 > Jevify is an independent skill from the ThursdAI community. It is not the Jev model, an API client, or an official TypeSafe product.
 
@@ -40,7 +40,31 @@ Install with the [open agent skills CLI](https://github.com/vercel-labs/skills):
 npx skills add altryne/jevify --skill jevify
 ```
 
-Choose your agent when prompted. You can also give an agent this repository and ask it to read [SKILL.md](SKILL.md) and its linked references.
+The CLI asks which agents to install for (Claude Code, Codex, Cursor, and others) and whether to install for this project or globally. Common variations:
+
+```bash
+# Skip the prompts: install globally for Claude Code
+npx skills add altryne/jevify --skill jevify -g -a claude-code -y
+
+# See what the repository offers before installing
+npx skills add altryne/jevify --list
+
+# Later: check what is installed, pull the latest version, or uninstall
+npx skills list
+npx skills update
+npx skills remove jevify
+```
+
+| Flag | Meaning |
+|---|---|
+| `-g`, `--global` | Install to your user directory so every project can use it, instead of the current project only |
+| `-a`, `--agent <name>` | Target specific agents, for example `claude-code`, `codex`, or `cursor` |
+| `-y`, `--yes` | Skip confirmation prompts |
+| `--copy` | Copy the files instead of symlinking them |
+
+`npx` comes with Node.js. Start a new agent session after installing so the skill is picked up. Pairing it with TypeSafe's own skill (`npx skills add typesafe-ai/skills`) works well: that one covers API and SDK basics, and Jevify adds discovery, question packs and evaluation.
+
+No CLI? Give an agent this repository and ask it to read [SKILL.md](SKILL.md) and its linked references.
 
 Then ask:
 
@@ -91,7 +115,7 @@ A few discoveries from **September 14–17, 2026**. These are examples of people
 | **Context-aware credential triage** | [teyhouse / jev-secret-detection](https://github.com/teyhouse/jev-secret-detection) evaluates synthetic credential and non-credential snippets. | Test false positives by category. A semantic check complements established scanners. |
 | **Interactive idea scoring** | [A community builder's demo](https://www.reddit.com/r/SideProject/comments/1wiw6tk/i_built_a_side_project_to_test_typesafes_jev/) evaluates ideas across roughly ten parallel criteria. | Score distinct dimensions, then expose the weights and tradeoffs in code. |
 
-**Speed is only half the story.** Every's small writing comparison found a missed defect; Aera's wider candidate pools could cost more. Different task sizes and reasoning settings change the comparison. The [full research notes](references/community-discoveries-2026-09-17.md) preserve methods, numbers, caveats, and sources.
+**Speed is only half the story.** Every's small writing comparison found a missed defect; Aera's wider candidate pools could cost more. Different task sizes and reasoning settings change the comparison. The [full research notes](references/community-discoveries.md) preserve methods, numbers, caveats, and sources.
 
 The skill refreshes community research for new discovery work, so this snapshot is a starting point rather than a frozen list of possibilities.
 
@@ -122,19 +146,28 @@ One request, shared context, independent judgments. Both passages may be useful,
   "questions": {
     "keep_a": {
       "type": "noul",
-      "instructions": "Does passages.a help answer query with a step, prerequisite, or constraint?"
+      "instructions": "Does `passages.a` help answer `query` with a step, prerequisite, or constraint?"
     },
     "keep_b": {
       "type": "noul",
-      "instructions": "Does passages.b help answer query with a step, prerequisite, or constraint?"
+      "instructions": "Does `passages.b` help answer `query` with a step, prerequisite, or constraint?"
     }
   }
 }
 ```
 
-This is an illustrative native TypeSafe request body, not a recorded model result. Code applies a threshold validated on your data, keeps qualifying passages, and enforces the context budget. Question IDs are for your code; the target must also appear in the instructions. Check the [current model](https://docs.typesafe.ai/models) and [API contract](https://docs.typesafe.ai/api) before running.
+This is an illustrative native TypeSafe request body, not a recorded model result. Code applies a threshold validated on your data, keeps qualifying passages, and enforces the context budget. Question IDs are for your code; the target must also appear in the instructions, as a backticked state path. Check the [current model](https://docs.typesafe.ai/models) and [API contract](https://docs.typesafe.ai/api) before running.
 
-Explore [three complete request examples](assets/example-requests.json), [nine boundary cases](assets/question-cases.json), and the [question-design guide](references/question-design.md).
+Explore [three complete request examples](assets/example-requests.json), [nine boundary cases](assets/question-cases.json), a [complete worked question pack](references/worked-question-pack.md), and the [question-design guide](references/question-design.md).
+
+Have an API key? Check the shapes for free, then run the examples:
+
+```bash
+python scripts/run_cases.py --dry-run
+TYPESAFE_API_KEY=... python scripts/run_cases.py
+```
+
+A live run bills your TypeSafe account and sends the request state to TypeSafe.
 
 ## How it works
 
@@ -158,11 +191,14 @@ Jevify explores routing, retrieval, extraction, verification, document structure
 | [SKILL.md](SKILL.md) | The workflow your agent follows |
 | [Question design](references/question-design.md) | Primitive selection, bad-to-better questions, batching, and pitfalls |
 | [Patterns](references/patterns.md) | Compositions and links to official cookbooks |
-| [Research protocol](references/research-protocol.md) | Refresh official docs and the last three days of community evidence |
-| [Community discoveries](references/community-discoveries-2026-09-17.md) | Dated first-hand experiments and transferable lessons |
-| [Product evidence](references/product-evidence.md) | Documented interface, limits, pricing, and source links |
+| [Research protocol](references/research-protocol.md) | Refresh official docs and recent community evidence, widening the window when it is quiet |
+| [Community discoveries](references/community-discoveries.md) | Dated snapshots of first-hand experiments and transferable lessons |
+| [Worked question pack](references/worked-question-pack.md) | One complete deliverable, from decision to composition code and thresholds |
+| [Product evidence](references/product-evidence.md) | Documented interface, response shape, context window, weaknesses, pricing, and source links |
 | [Evaluation](references/evaluation.md) | Compare matched workloads, quality, latency, and total cost |
 | [Examples](assets/example-requests.json) · [Cases](assets/question-cases.json) | Ready-to-adapt requests and evaluation seeds |
+| [run_cases.py](scripts/run_cases.py) | Validate request bodies, then send them and print answers, tokens, and cost |
+| [evals/](evals/evals.json) | Test prompts for checking changes to the skill itself |
 
 ## From ThursdAI
 
@@ -175,6 +211,8 @@ Built by [Alex Volkov](https://github.com/altryne), from the conversations and e
 ## Contribute a discovery
 
 Tried something useful with Jev? [Open an issue](https://github.com/altryne/jevify/issues) or a PR with the original source, date, question shape, workload, result, and what failed. Reproducible experiments and better question designs are especially welcome. Use synthetic or public examples.
+
+**Maintaining the skill.** Keep it portable: no install paths, private project paths, tickets, credentials, transcripts, or one project's rules inside the skill folder. Add new research as a dated snapshot at the top of [community-discoveries.md](references/community-discoveries.md) and keep each snapshot small. When the TypeSafe docs change, update the verified date and facts in [product-evidence.md](references/product-evidence.md), including the price and limits in `scripts/run_cases.py`. Run the prompts in [evals/evals.json](evals/evals.json) before and after a change; TypeSafe's own `typesafe-ai` skill is the fair baseline to compare against.
 
 Thanks to [TypeSafe](https://typesafe.ai) for the model and documentation, [last30days](https://github.com/mvanhorn/last30days-skill) for community research, and the builders sharing their experiments.
 

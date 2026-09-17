@@ -1,0 +1,27 @@
+{
+  "skill_name": "jevify",
+  "baseline": "TypeSafe's official typesafe-ai skill (https://github.com/typesafe-ai/skills), not a no-skill run",
+  "evals": [
+    {
+      "id": 1,
+      "name": "memory-selector-question-pack",
+      "prompt": "Use Jevify to design a memory selector for my assistant. It has ~400 stored memories per user, we embed-retrieve 30 and today GPT picks which to inject. Several memories can be useful at once. Show the state, primitives, exact questions, batching strategy, fallback behavior, and evaluation cases.",
+      "expected_output": "A question pack that uses per-candidate Nouls (or per-item Scores) rather than one Choice for inclusion, backticked state paths, a request that fits the 64k/32k window or an explicit split, composition code that reads answers.<id>.noul, thresholds chosen from labels, and a matched-workload comparison against the current LLM selector.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "question-review-no-research",
+      "prompt": "review these jev questions pls. state = {ticket:{message, created_at, sla_deadline}}. q1 choice 'Classify this' options billing/support/urgent. q2 noul 'Is this not an unimportant message?'. q3 noul 'Is created_at more than 4 hours before sla_deadline?'. q4 score 'quality' levels poor/ok/good/great. are the primitives right? rewrite whatever is ambiguous.",
+      "expected_output": "Rewritten questions first. Flags mixed option dimensions in q1 and adds a no-match option, removes the double negative in q2, moves the q3 date comparison into code and passes the computed fact as state, gives q4 concrete standalone levels for one dimension. Does not run a broad community research pass for this focused rewrite.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "long-list-shortlist",
+      "prompt": "I have an agent with 140 tools and picking the right one with a big model adds ~2s to every turn. Could Jev do the tool pick? Most turns need zero or one tool. Give me the actual request and the code around it, and tell me honestly where it could go wrong.",
+      "expected_output": "One Choice over tool IDs used as a ranker plus a Noul (or none option) for whether any tool is needed, optionally a second stage verifying the top few with per-item Nouls over fuller descriptions, per the official skill-suggestion cookbook. Notes the 255-option limit, truncated-description risk, confidence gating with fallback to the big model, and a fair latency/cost/accuracy test. Labels the design as proposed, not measured.",
+      "files": []
+    }
+  ]
+}
