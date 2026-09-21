@@ -52,6 +52,18 @@ Offsets are zero-based Unicode character positions with an exclusive end, within
 
 Default excerpts are capped at 800 characters for eight items. The output also includes bounded low-ranked and uncertain samples for a coverage check. Inspect those originals before relying on the selection; `--audit-size` controls the sample size per group. `--top` and `--excerpt-chars` adjust that context budget. The report shows all judged and unjudged units. A partial failure exits with status 1 while preserving successful judgments. Zero scores are retained as judgments, and even an all-zero shortlist is not proof that the source lacks an answer. Widen the search or read more when the evidence does not settle the question.
 
+## Find every matching item
+
+User: "Find every swear word in this recording."
+
+This is enumeration, not relevance ranking. Use one Noul per sentence, including short reactions, with a concrete inclusion rule. For profanity, include slang and inflections in the criteria without reducing them to a closed wordlist. Save every answer in a file, then have code retain positives above the chosen threshold. Start at 0.5 when no task-specific threshold is known; check candidates and known misses rather than treating that value as validated.
+
+A semantic search tool or `--top 25` returns a shortlist. Increasing top does not establish complete coverage. Use all saved judgments, not the printed shortlist. Track input units, judged units, failed or unjudged units, source truncation and output limits. For an API with bounded threshold results, split overflowing time ranges, rerun affected windows, and deduplicate by stable source bounds. Retrieve only the selected text and necessary neighbors into reasoning context. Complete processing and perfect recall are different claims.
+
+If the request names an exact string, use literal search over a file-backed export. For a semantic class, use Jev rather than paging the whole source into context and inventing a regex wordlist. A missing known hit can come from input filtering, truncation, ranking or the question itself; inspect which stage lost it before rewriting the question.
+
+Muse's September 21 Targum review reported 16 transcript reads plus grep in 27 seconds, compared with a Jev scan of 1,710 sentences in 2.5 seconds for $0.013. Jev found two slang terms the regex missed, while the top-ranked response still omitted other hits. These are attributed session observations, not a controlled benchmark or a guarantee. The reusable lesson is to separate enumeration from shortlisting.
+
 ## Large tool outputs and records
 
 User: "These deployment runs keep failing. Find the common cause."
