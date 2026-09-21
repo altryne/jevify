@@ -10,7 +10,54 @@ State contains evidence: named records, current facts, candidate text, relations
 
 Retrieve focused evidence first. Add context when errors expose a gap, not every document available: unrelated state lowers accuracy, and the window is finite (64k tokens for state plus all questions, 32k for state plus the longest question in Jev 1.13; check current limits). When the evidence will not fit, filter or retrieve harder, trim records to the fields the questions use, or split candidates into groups that each carry the shared query. Splitting repeats the shared state, so count that in cost.
 
-Build a compact contract: target, evidence, judgment, answer meaning, exclusions, missing-data behavior. Keep a short string when clear. Use an object when named fields separate tangled definitions or examples. Long structured prompts are not mandatory.
+Build a compact contract: target, evidence, judgment, answer meaning, exclusions, missing-data behavior.
+
+## Tell Jev what it is looking at
+
+Jev knows nothing about the user's world. A question like "Is this sentence the host operating the show?" arrives cold: nothing says the text is a live broadcast, that the host also runs the screen share, or that the decision is what to trim for a podcast. A human given the same task would need that briefing, and so does Jev.
+
+Put a short domain context block in state and point the questions at it: what this material is, who is involved, what the decision is for, and any local convention that changes the right answer. Five plain sentences is plenty. Keep it in its own named field, separate from the item being judged.
+
+Then test it per question, because context is not free accuracy. In one session a context block widened the gap between labeled yes and no cases for editorial questions (is this production chatter, would a listener miss this) and narrowed it for a purely linguistic one: once told that speakers on this show restart sentences all the time, Jev treated false starts as normal. Send each question only the context notes that bear on it.
+
+When questions are built from a template, keep the person's wording and the machine-inserted pointer in separate fields of structured instructions (`question` for the words, `inspect` or `target` for the backticked path) rather than gluing a path into the middle of a sentence. It keeps the prompt readable to both the model and the person debugging it.
+
+## Instructions and criteria can be JSON, not only state
+
+Most people structure the state and then write `instructions: "classify this as a foo or bar"` with one-line criteria. Instructions, Choice option descriptions, Score levels and Noul `true`/`false` criteria all accept objects and arrays ([Advanced: structure](https://docs.typesafe.ai/primitives/advanced)), and a TypeSafe engineer has called this very important for prompt optimization and the least obvious of the three places JSON is accepted (see [community-discoveries.md](community-discoveries.md), finding 9). It is specific to Jev: there is no chat template to fight, so labeled fields are read as labeled fields.
+
+Structured instructions separate the kinds of guidance a question carries, and can carry per-question context that does not belong in shared state:
+
+```json
+{
+  "type": "choice",
+  "instructions": {
+    "question": "What is the text inside [[double brackets]] in `target.sentence` doing in that sentence?",
+    "focus": "Judge only the bracketed occurrence, not other uses of the same word",
+    "context": "Spoken podcast transcript; speakers restart and trail off",
+    "previous_judgments": [
+      { "sentence": "It was, [[like]], amazing.", "answer": "discourse_filler" },
+      { "sentence": "Tasks [[like]] stacking blocks.", "answer": "comparison_or_example" }
+    ]
+  },
+  "criteria": {
+    "discourse_filler": {
+      "what": "A verbal tic; the sentence reads the same without it",
+      "not_for": "like meaning 'similar to'; like as a verb",
+      "examples": ["so, you know, we shipped it", "I mean, at the start of a turn"]
+    },
+    "comparison_or_example": {
+      "what": "Introduces a comparison or an example",
+      "examples": ["a model like Astra", "feels like AGI"]
+    },
+    "insufficient_context": "The sentence does not settle it"
+  }
+}
+```
+
+Field names are yours to choose; the docs use `question`, `focus`, `compare`, `inspect`, `field`, `what`, `not_for`, `examples`, `summary` and `signals`. Use the same field names across all options or levels so the model can compare like with like. A schema, taxonomy node or database row that is already JSON can go in as it is.
+
+When to reach for it: neighboring options blur, a question needs worked examples or prior decisions, or the instruction has several parts (what to judge, what to ignore, what the source is). A short string is still right for a simple question. Structured fields cost tokens on every question that carries them, so when a rubric is shared by many questions in a request, weigh its size (see [running-jev.md](running-jev.md)). One small community test saw flat and structured criteria tie, so treat structure as a strong default for ambiguous judgments and confirm it on labeled cases rather than assuming either way.
 
 ## Choice: which one?
 
@@ -18,7 +65,7 @@ Use mutually exclusive operational outcomes. When topics overlap, specify the se
 
 Bad: “Classify this,” with billing, support and urgent as options. Billing is a topic, support a department, urgent an independent property.
 
-Better: ask for the primary requested remedy, define comparable departments, and ask urgency separately. Contrast neighboring options with consistent `what`, `not_for`, and `examples` fields where needed. Check coverage: Jev cannot choose a missing candidate.
+Better: ask for the primary requested remedy, define comparable departments, and ask urgency separately. Contrast neighboring options with consistent `what`, `not_for`, and `examples` fields where needed. Check coverage: Jev cannot choose a missing candidate. Options must also be genuinely different outcomes: near-duplicate options (machine-generated candidates that differ by a word) split the probability between them so that none wins clearly. Merge them, or judge each with its own Noul.
 
 A Choice distribution allocates probability among competing winners and sums to 1. That makes it a good cheap ranker and a poor inclusion test. The official [semantic find](https://docs.typesafe.ai/cookbooks/semantic_find) and [skill suggestion](https://docs.typesafe.ai/cookbooks/skill_suggestion) cookbooks rank 218 line IDs and 182 skills with a single Choice, then cover its blind spots: some option always ranks first even when nothing matches, so they add a Noul asking whether any answer exists, and skill suggestion re-checks the top three with per-item Nouls over fuller text. Use that shape when you want a shortlist or one best item from a long list. When several items can all qualify and each must be kept or dropped, as in memory or passage selection, ask one Noul per candidate or comparable per-item Scores; community tests found Choice ranking dropped relevant items there. Above the documented option limit, retrieve candidates or use [hierarchical selection](https://docs.typesafe.ai/cookbooks/hierarchical_classification), and measure candidate recall.
 
@@ -66,6 +113,10 @@ Weighted sums allow preferences to compensate; hard requirements cannot be avera
 1. **Support triage:** Choice department, Noul refund request, Score resolution complexity. Code selects a handler, then a specialist/review path. A refund request is not payment authorization; a low Noul is not a service failure.
 2. **Evidence filtering:** one Noul per candidate. Retain multiple useful passages with a validated threshold and budget. Do not force exactly one item or fill the budget with irrelevant results. Add comparable per-item Scores if utility ranking matters.
 3. **Source-value extraction:** Choice over span IDs plus not-stated/ambiguous. Code resolves the exact source string. Candidate generation and coverage remain a separate recall problem.
+
+## Check that the question is doing work
+
+Look at the distribution of answers before trusting a pack. If nearly every item gets the same answer (874 of 886 in one run), the question is probably answering itself. Two ways that happens: an option's description names the very tokens being judged ("a filled pause: uh, um, er" applied to the word "uh"), so Jev matches the word instead of judging the use; or the question is trivially true for the whole category ("does the sentence state the same facts without this uh?"). A question written for one kind of target rarely transfers to another. Go back to what the person cares about for this target and ask that, and move whatever code can measure (pause length, position, counts) into code.
 
 ## Improve from errors
 
