@@ -9,8 +9,8 @@
 </p>
 
 <p align="center">
-  <strong>Find where Jev belongs. Design the questions. Measure the difference.</strong><br />
-  A reusable agent skill for any app, codebase, or idea.
+  <strong>Give your agent a System One capability.</strong><br />
+  Use Jev during everyday agent work, and find what it can improve in your product.
 </p>
 
 <p align="center">
@@ -24,13 +24,20 @@
 
 ## Why Jevify?
 
-Many LLM calls end with a tiny decision: choose a tool, keep a passage, flag a defect, rank a candidate. [TypeSafe Jev](https://typesafe.ai) makes those decisions through typed questions and probabilities, without generating a prose answer.
+An agent can have access to Jev and still read every document, load every tool result, and repeat every judgment itself. Jevify teaches it to recognize work that a fast, inexpensive decision model can handle, then gives it the tools to act.
 
-**The opportunity is doing useful work more often, across more candidates, with less waiting and lower cost.** An LLM can do many of the same tasks. Jevify helps you find where Jev's economics change what is practical, then design an honest comparison.
+[TypeSafe Jev](https://typesafe.ai) returns typed judgments and probabilities. It can select useful passages, rank candidates, check many items, or choose a handler. Jevify helps the agent send those decisions to Jev, bring selected source evidence into context, and continue reasoning toward your answer.
 
-It combines **current TypeSafe documentation**, **recent first-hand community experiments**, and **your application** to produce concrete question packs and integration ideas. It works with an existing repository or a plain-language description.
+The agent's own reading and reasoning cost tokens too. Jevify makes Jev the default for bulk semantic judgments, assuming it is faster and cheaper than spending reasoning-model tokens on those judgments. The agent delegates the first pass, reads selected evidence, and finishes the task. It does not stop to build a cost comparison before using the tool.
 
-> Jevify is an independent skill from the ThursdAI community. It is not the Jev model, an API client, or an official TypeSafe product.
+There are two entry points:
+
+- **Ordinary tasks:** a large document, noisy tool output, or repeated semantic checks can trigger Jevify even when you never mention Jev. The agent uses it where the task, available runtime, and external-inference permissions allow.
+- **"Jevify this":** ask it to inspect a product or workflow and identify concrete improvements, including capabilities that frequent, inexpensive judgments could enable.
+
+The skill teaches Choice, Noul, and Score, shared-state batching, question design, source preservation, and evaluation. Its Python helpers need no npm or third-party packages. Existing TypeSafe tools and official SDKs work too.
+
+> Jevify is an independent skill from the ThursdAI community. It includes optional helper scripts; it is not the Jev model or an official TypeSafe product. Skill activation depends on the host agent, and installation does not intercept tool outputs automatically.
 
 ## Get started
 
@@ -62,16 +69,23 @@ npx skills remove jevify
 | `-y`, `--yes` | Skip confirmation prompts |
 | `--copy` | Copy the files instead of symlinking them |
 
-`npx` comes with Node.js. Start a new agent session after installing so the skill is picked up. Pairing it with TypeSafe's own skill (`npx skills add typesafe-ai/skills`) works well: that one covers API and SDK basics, and Jevify adds discovery, question packs and evaluation.
+`npx` comes with Node.js. Start a new agent session after installing so the skill is picked up. TypeSafe's own skill (`npx skills add typesafe-ai/skills`) also covers building, question design, composition, and verification. Jevify adds agent execution habits, runnable helpers, and proactive product opportunities; it does not require the other skill.
 
 No CLI? Give an agent this repository and ask it to read [SKILL.md](SKILL.md) and its linked references.
 
-Then ask:
+For an ordinary task, ask normally:
+
+```text
+This report is long. Find the passages that explain migration failures,
+rollback prerequisites, and exceptions, then answer with source references.
+```
+
+With the skill loaded and TypeSafe use authorized, the agent can scan before reading the full report into its reasoning context. It still checks original evidence before answering. For a product review, ask:
 
 ```text
 Jevify this codebase. Find repeated LLM judgments or fragile semantic
 heuristics that could benefit from Jev. Recommend the best opportunities,
-write the actual questions, and propose a fair latency/cost/quality test.
+write the actual questions, and explain how the result improves the experience.
 ```
 
 No repository? Start with an idea:
@@ -90,12 +104,34 @@ Rewrite ambiguous criteria, identify missing context, and show
 which questions can run together.
 ```
 
-**Requirements:** an agent that can read skill files and browse public docs. [last30days](https://github.com/mvanhorn/last30days-skill) is recommended for community research; the skill discloses when it falls back to public search. You need TypeSafe API access only when you choose to run inference. Installing the skill does not make API calls.
+**Requirements:** an agent that can read skill files and browse public docs. Live execution also needs a TypeSafe tool, SDK, or Python 3.10+ with outbound HTTPS for the bundled helpers. [last30days](https://github.com/mvanhorn/last30days-skill) is recommended for community research; the skill discloses when it falls back to public search. Installing the skill does not make API calls or grant permission to send data. Existing task or session authorization can cover repeated Jev calls without a separate request for each one.
+
+A ready-to-run scan is available without package installation. Resolve `JEVIFY_DIR` to your installed skill directory, then run from your task directory:
+
+```bash
+python3 "$JEVIFY_DIR/scripts/scan.py" report.txt \
+  --query "Migration failures and rollback requirements" --dry-run
+
+python3 "$JEVIFY_DIR/scripts/scan.py" report.txt \
+  --query "Migration failures and rollback requirements" \
+  --output report-scan.json --top 8
+```
+
+The dry run needs no key or network. The live scan returns a compact reading shortlist and saves all judgments with source offsets. It supports plain UTF-8 text and JSONL records with a `text` field. It includes low-ranked and uncertain samples to check for missed evidence. For conversation archives, the [corpus review workflow](references/corpus-review.md) preserves roles, recurring concerns, and evidence through synthesis. The scan is a first pass, not an exhaustive review. See [agent workflows](references/agent-workflows.md) for reopening selected passages and handling large tool outputs.
+
+**API key (only for live runs).** Create a key in the [TypeSafe console](https://console.typesafe.ai/settings/keys) and make it available as `TYPESAFE_API_KEY`, either exported in the shell that launches your agent or in a git-ignored `.env` in the project:
+
+```bash
+export TYPESAFE_API_KEY=...          # or: echo 'TYPESAFE_API_KEY=...' >> .env
+```
+
+Without a key the agent can keep working locally, design questions, and dry-run request sizing. It explains setup once instead of searching unrelated files for credentials.
 
 ## What you get
 
 | Deliverable | What's inside |
 |---|---|
+| **Agent execution** | Scan local text or JSONL, inspect a compact shortlist with source locations, and finish the original task |
 | **Opportunity map** | Where Jev, a hybrid, a generative model, or existing code fits best |
 | **Question pack** | Exact state, instructions, criteria, primitive choices, and missing-data behavior |
 | **Composition plan** | Shared-state batching, dependent stages, routing, source extraction, and fallback |
@@ -173,22 +209,23 @@ A live run bills your TypeSafe account and sends the request state to TypeSafe.
 
 ```mermaid
 flowchart LR
-    D[Official docs] --> R[Research]
-    C[Recent community experiments] --> R
-    A[Your app or idea] --> O[Find opportunities]
-    R --> O
-    O --> Q[Design typed questions]
-    Q --> B[Batch and compose in code]
-    B --> E[Evaluate against your baseline]
+    T[Your task] --> D{What is needed?}
+    D --> S[Repeated semantic judgments]
+    D --> C[Exact search or computation]
+    S --> J[Jev batches over local data]
+    J --> E[Selected source evidence]
+    E --> A[Agent reasons and completes the task]
+    C --> A
 ```
 
-Jevify explores routing, retrieval, extraction, verification, document structure, entity matching, interactive decisions, and combinations of those patterns. It preserves exact calculations and hard rules in code, and keeps generative models where writing or deeper reasoning is needed.
+For product work, Jevify also identifies improvements, designs questions, and tests the resulting behavior against the current approach. Current TypeSafe docs guide the implementation. Community experiments help with open-ended discovery. Exact calculations and hard rules stay in code; generation and deeper reasoning stay with the appropriate model.
 
 ## Inside the skill
 
 | File | Purpose |
 |---|---|
 | [SKILL.md](SKILL.md) | The workflow your agent follows |
+| [Agent workflows](references/agent-workflows.md) | Scan documents and tool outputs before bulk reading; retrieve selected source evidence |
 | [Question design](references/question-design.md) | Primitive selection, bad-to-better questions, batching, and pitfalls |
 | [Patterns](references/patterns.md) | Compositions and links to official cookbooks |
 | [Research protocol](references/research-protocol.md) | Refresh official docs and recent community evidence, widening the window when it is quiet |
@@ -197,7 +234,11 @@ Jevify explores routing, retrieval, extraction, verification, document structure
 | [Product evidence](references/product-evidence.md) | Documented interface, response shape, context window, weaknesses, pricing, and source links |
 | [Evaluation](references/evaluation.md) | Compare matched workloads, quality, latency, and total cost |
 | [Examples](assets/example-requests.json) · [Cases](assets/question-cases.json) | Ready-to-adapt requests and evaluation seeds |
-| [run_cases.py](scripts/run_cases.py) | Validate request bodies, then send them and print answers, tokens, and cost |
+| [Running Jev](references/running-jev.md) | Runtime choice, credentials, batching, failures, and caching |
+| [Field notes](references/field-notes.md) | Historical examples to consult when a similar failure appears |
+| [scan.py](scripts/scan.py) | Standard-library relevance scan for local text and JSONL, with compact output and source locations |
+| [jev_client.py](scripts/jev_client.py) | Standard-library client: key loading, concurrent requests over reused connections, pacing, and retries |
+| [run_cases.py](scripts/run_cases.py) | Validate request bodies, then send them concurrently and print answers, tokens, and cost |
 | [evals/](evals/evals.json) | Test prompts for checking changes to the skill itself |
 
 ## From ThursdAI
@@ -212,7 +253,7 @@ Built by [Alex Volkov](https://github.com/altryne), from the conversations and e
 
 Tried something useful with Jev? [Open an issue](https://github.com/altryne/jevify/issues) or a PR with the original source, date, question shape, workload, result, and what failed. Reproducible experiments and better question designs are especially welcome. Use synthetic or public examples.
 
-**Maintaining the skill.** Keep it portable: no install paths, private project paths, tickets, credentials, transcripts, or one project's rules inside the skill folder. Add new research as a dated snapshot at the top of [community-discoveries.md](references/community-discoveries.md) and keep each snapshot small. When the TypeSafe docs change, update the verified date and facts in [product-evidence.md](references/product-evidence.md), including the price and limits in `scripts/run_cases.py`. Run the prompts in [evals/evals.json](evals/evals.json) before and after a change; TypeSafe's own `typesafe-ai` skill is the fair baseline to compare against.
+**Maintaining the skill.** Keep it portable: no install paths, private project paths, tickets, credentials, transcripts, or one project's rules inside the skill folder. Add new research as a dated snapshot at the top of [community-discoveries.md](references/community-discoveries.md) and keep each snapshot small. When the TypeSafe docs change, update the verified date and facts in [product-evidence.md](references/product-evidence.md), including the price and limits in `scripts/run_cases.py`. Run the prompts in [evals/evals.json](evals/evals.json) before and after a change; Compare the same agent without Jevify, with TypeSafe's official skill, and with Jevify. Test ordinary tasks that never name Jev, as well as explicit product reviews. Skill discovery and execution after loading are separate outcomes.
 
 Thanks to [TypeSafe](https://typesafe.ai) for the model and documentation, [last30days](https://github.com/mvanhorn/last30days-skill) for community research, and the builders sharing their experiments.
 

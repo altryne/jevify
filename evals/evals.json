@@ -1,6 +1,6 @@
 {
   "skill_name": "jevify",
-  "baseline": "TypeSafe's official typesafe-ai skill (https://github.com/typesafe-ai/skills), not a no-skill run",
+  "baseline": "Use the same agent, task, artifacts, runtime, and external-inference permissions across no-skill, official typesafe-ai skill, and Jevify runs. Record whether the skill was selected separately from behavior once loaded. No paid inference unless the evaluation authorizes it.",
   "evals": [
     {
       "id": 1,
@@ -22,6 +22,98 @@
       "prompt": "I have an agent with 140 tools and picking the right one with a big model adds ~2s to every turn. Could Jev do the tool pick? Most turns need zero or one tool. Give me the actual request and the code around it, and tell me honestly where it could go wrong.",
       "expected_output": "One Choice over tool IDs used as a ranker plus a Noul (or none option) for whether any tool is needed, optionally a second stage verifying the top few with per-item Nouls over fuller descriptions, per the official skill-suggestion cookbook. Notes the 255-option limit, truncated-description risk, confidence gating with fallback to the big model, and a fair latency/cost/accuracy test. Labels the design as proposed, not measured.",
       "files": []
+    },
+    {
+      "id": 4,
+      "name": "live-run-no-key",
+      "prompt": "I've got ~2,000 support tickets in tickets.jsonl. Use Jev to tag each one with department + whether it asks for a refund, and actually run it so I can see results and how long it takes. (No TYPESAFE_API_KEY is set in this environment.)",
+      "expected_output": "Checks for TYPESAFE_API_KEY by name before building, reports it missing in the first substantive message with the console URL and how to set it, does not search outside the environment and project env files, and meanwhile delivers the question pack, a client that batches questions per request and sends requests concurrently with pacing (using the available TypeSafe tool, matching SDK, or bundled Python client), and a dry run sizing the job. Does not fabricate results.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "ordinary-large-document",
+      "prompt": "In report.txt, find the evidence explaining migration failures and rollback exceptions. Give me an answer with source references. The report is 300,000 characters. Python and a TypeSafe key are available, and this public document may be sent to TypeSafe within a $0.05 task budget.",
+      "expected_output": "Considers Jev from the task description without a Jev keyword. Inspects shape and a small sample, executes a scoped relevance scan without printing the full document, checks selected originals and neighboring evidence, and answers the question. Reports coverage and failures. Does not substitute an adoption report, fabricate gains, or treat the shortlist as exhaustive.",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "ordinary-tool-output",
+      "prompt": "Inspect runs.jsonl and explain why deployments fail after successful builds. There are 3,000 public run records, each with a text field. Python, network, and TypeSafe credentials are configured. External inference on these records is authorized up to $0.05.",
+      "expected_output": "Uses deterministic filters where sufficient and Jev for remaining semantic triage. Keeps bulk records in local code, batches questions, prints a compact selection, follows source locations, and verifies a cause. Does not count a shortlist as a complete failure distribution or reinterpret failed calls as negative evidence.",
+      "files": []
+    },
+    {
+      "id": 7,
+      "name": "python-without-package-manager",
+      "prompt": "Find the passages in the attached long public report about cancellation exceptions. This assistant can execute Python 3.10 and outbound HTTPS but cannot install packages or run npm. TypeSafe calls on this report are authorized within $0.02 and a key is provided through the environment.",
+      "expected_output": "Uses the bundled standard-library scan/client without npm or pip. Sizes before sending, keeps output compact, resolves original source passages, and completes the answer.",
+      "files": []
+    },
+    {
+      "id": 8,
+      "name": "explicit-product-opportunities",
+      "prompt": "Jevify the search experience we are building. Users wait for a large model to read 80 retrieved snippets and choose a few. I want more useful results with less waiting. Review the design; don't implement yet.",
+      "expected_output": "Inspects the current selection behavior and finds specific improvements and newly practical capabilities. Designs per-item inclusion or usefulness questions, batched requests, composition, fallback, and a matched-workload evaluation. Gives estimates with assumptions, no invented performance gains, and respects the review-only scope.",
+      "files": []
+    },
+    {
+      "id": 9,
+      "name": "overlapping-valid-handlers",
+      "prompt": "Our TypeScript app already uses the official TypeSafe SDK. Both billing and account support can handle this customer request, but one team must own it. Write the question for choosing the best primary handler.",
+      "expected_output": "Keeps Choice with an explicit ownership rule despite multiple suitable alternatives. Uses the existing TypeScript SDK. Does not force multiple Nouls or a copied Python client.",
+      "files": []
+    },
+    {
+      "id": 10,
+      "name": "small-exact-task",
+      "prompt": "In this twelve-line config, what is the configured retry count?",
+      "expected_output": "Reads the config directly. Does not run Jev, request credentials, do community research, or add a semantic step to an exact lookup.",
+      "files": []
+    },
+    {
+      "id": 11,
+      "name": "exhaustive-audit",
+      "prompt": "List every clause in this 200-page policy that requires notifying a customer. Missing one is unacceptable. You may use our configured TypeSafe account on this public policy within $0.10.",
+      "expected_output": "Plans complete coverage by appropriate units, preserves boundaries and exceptions, tracks failed/unjudged units, and verifies results. May use per-unit Jev checks to assist but does not deliver only a relevance shortlist or claim that a probabilistic negative guarantees absence.",
+      "files": []
+    },
+    {
+      "id": 12,
+      "name": "no-external-data",
+      "prompt": "Analyze this long private incident log. Keep all contents local; don't send it to external services.",
+      "expected_output": "Uses local parsing and targeted reads. Does not invoke the external Jev API even if credentials are present; continues the task rather than blocking on a Jev setup flow.",
+      "files": []
+    },
+    {
+      "id": 13,
+      "name": "batch-throughput",
+      "prompt": "Plan a scan at 20 requests per second with 15,000 input tokens per request under the currently documented TypeSafe limits.",
+      "expected_output": "Identifies both request and token limits. Computes 300,000 tokens per second, refreshes the actual limits, and lowers rate or size if needed. Does not claim the client's request pacing enforces token throughput.",
+      "files": []
+    },
+    {
+      "id": 14,
+      "name": "agent-spend-aware-delegation",
+      "prompt": "Answer this focused question from a large public report. Use the least total model spend you can while preserving source accuracy. You are running on an expensive reasoning model. Python, a configured TypeSafe account, and external inference on this document within a $0.05 budget are available.",
+      "expected_output": "Treats Jev as the default faster, cheaper path for bulk semantic judgments and acts without a benchmark or economic-comparison detour. Uses metadata and a sample, applies local exact filters where useful, then runs the semantic scan before loading the corpus. Reads selected evidence and completes the answer. Reports available usage honestly; does not invent measured savings or require the user to approve a benchmark before execution.",
+      "files": []
+    },
+    {
+      "id": 15,
+      "name": "no-benchmark-detour",
+      "prompt": "Find the relevant passages in this long public report and answer my question. Jev is configured and external inference on this report is already authorized. Please just get the answer.",
+      "expected_output": "Executes an appropriate Jev scan and source verification, then answers. Does not initiate a baseline run, estimate the reasoning models price, fetch pricing just to decide whether to scan, ask about benchmarking, or turn the task into an adoption report. A brief local dry run for request sizing is acceptable.",
+      "files": []
+    },
+    {
+      "id": 16,
+      "name": "conversation-coverage-and-synthesis",
+      "prompt": "Extract durable product and agent guidance from a large authorized conversation archive. Messages have recorded roles and exact source locations. Some key goals are short questions, complaints, or praise. A previous whole-exchange importance scan missed several of them. Keep the raw corpus out of your context.",
+      "expected_output": "Parses recorded roles and source IDs in code. Uses bounded file-backed units and separate judgments for goals, friction, praise, and discussion. Keeps assistant claims separate. Aggregates recurrence across chunks without counting overlapping windows twice. Reads low-ranked, uncertain, short, and unmatched samples. Inspects and repairs question failures. Checks retained themes against the final draft so selected evidence survives synthesis. Reports unjudged coverage. Does not load the full corpus or start a cost comparison.",
+      "files": []
     }
-  ]
+  ],
+  "measurement": "Completion quality, source accuracy, skill selection, raw input brought into agent context, reasoning-model input/output and cached tokens where available, Jev returned tokens and calls, total workflow time, errors, and unnecessary setup or research. Compare total cost when prices are known. Without an executed baseline, do not claim measured savings or activation success; label character counts as a context-footprint proxy."
 }

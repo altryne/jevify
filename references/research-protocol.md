@@ -1,10 +1,10 @@
 # Research protocol: live docs plus recent community evidence
 
-Use research to find better designs, not to produce a popularity leaderboard. A focused question-design task can reuse fresh findings already in context. For a new opportunity scan, refresh both lanes below.
+Use research to find better designs, not to produce a popularity leaderboard. A focused question-design task can reuse fresh findings already in context. For open-ended product discovery, refresh the lanes that can inform the design. An ordinary execution task does not require community research.
 
 ## Official lane
 
-Start at https://docs.typesafe.ai/llms.txt. Fetch relevant pages as Markdown by appending `.md`, or use normal pages if Markdown fails. Read the primitive and closest cookbook before choosing an architecture. Refresh models, pricing, context/rate limits, known limitations, and native API/SDK shape. TypeSafe's own skill at https://github.com/typesafe-ai/skills is a useful current reference for API and primitive basics.
+Start at https://docs.typesafe.ai/llms.txt. Fetch relevant pages as Markdown by appending `.md`, or use normal pages if Markdown fails. Read the primitive and closest cookbook before choosing an architecture. Refresh models, pricing, context/rate limits, known limitations, and native API/SDK shape. TypeSafe's own skill at https://github.com/typesafe-ai/skills is a useful current reference for building, composition, question design, and verification.
 
 Do not blend API dialects. Native TypeSafe uses Noul; a gateway may name its corresponding primitive Boolean and expose different fields. Check the exact provider/version selected by the user. A model alias can change behavior; identify the resolved version in measured results.
 
