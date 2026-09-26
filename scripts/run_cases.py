@@ -129,6 +129,10 @@ def main():
             print(f"\n{name}  [{response.get('model')}  {response['seconds'] * 1000:.0f} ms  {tokens} input tokens]")
             for qid, answer in response.get("answers", {}).items():
                 print(f"  {qid}: {describe(answer)}")
+        if response.get("missing"):
+            failures += 1
+            if not args.json:
+                print(f"  not judged: {', '.join(response['missing'])}")
     if args.json:
         json.dump(raw, sys.stdout, indent=2)
         print()
