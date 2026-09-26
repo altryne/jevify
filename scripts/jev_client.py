@@ -54,8 +54,9 @@ def load_key(env_files: Iterable[str | Path] = (".env",)) -> str:
             continue
         for line in path.read_text().splitlines():
             name, _, value = line.strip().removeprefix("export ").partition("=")
-            if name.strip() == KEY_ENV and value.strip():
-                return value.strip().strip("\"'")
+            value = value.strip().strip("\"'")
+            if name.strip() == KEY_ENV and value:
+                return value
     raise MissingKey(
         f"{KEY_ENV} is not set. Create a key at {KEY_URL}, then `export {KEY_ENV}=...` "
         f"or add `{KEY_ENV}=...` to a git-ignored .env file."
@@ -96,7 +97,10 @@ class JevClient:
         payload = json.dumps({"model": model or self.model, "state": state, "questions": questions}, sort_keys=True)
         cached = self.cache_dir / f"{hashlib.sha256(payload.encode()).hexdigest()}.json" if self.cache_dir else None
         if cached and cached.exists():
-            return {**json.loads(cached.read_text()), "seconds": 0.0, "cached": True}
+            try:
+                return {**json.loads(cached.read_text()), "seconds": 0.0, "cached": True}
+            except (OSError, json.JSONDecodeError, TypeError):
+                pass                             # an unreadable entry is a miss; the request is sent again
         headers = {"Authorization": f"Bearer {self.api_key}", "Content-Type": "application/json"}
         last_error: dict[str, Any] = {"error": "not attempted"}
         for attempt in range(self.retries + 1):
@@ -118,8 +122,13 @@ class JevClient:
                         return {"error": "Malformed JSON response; request was not judged.", "status": 200}
                     if not isinstance(result, dict) or not isinstance(result.get("answers"), dict):
                         return {"error": "Missing answers in response; request was not judged.", "status": 200}
-                    if cached:                       # only successes are stored, so failures are retried next run
-                        cached.write_text(json.dumps(result))
+                    missing = sorted(set(questions) - set(result["answers"]))
+                    if missing:              # keep the answers that came back, but never cache a partial result
+                        return {**result, "seconds": time.perf_counter() - started, "missing": missing}
+                    if cached:                       # only complete successes are stored, so failures are retried next run
+                        partial = cached.with_name(f"{cached.name}.{os.getpid()}.{threading.get_ident()}.tmp")
+                        partial.write_text(json.dumps(result))
+                        os.replace(partial, cached)  # readers see the whole entry or none
                     return {**result, "seconds": time.perf_counter() - started}
                 last_error = {"error": "Provider rejected the request; response body omitted to protect submitted data.",
                               "status": response.status}
