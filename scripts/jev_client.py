@@ -1,7 +1,7 @@
 """Small, fast TypeSafe System One client. Standard library only; copy it into a project or import it.
 
     from jev_client import JevClient
-    client = JevClient()                                  # reads TYPESAFE_API_KEY
+    client = JevClient()                                  # reads TYPESAFE_API_KEY, else OPENROUTER_API_KEY
     answers = client.ask(state, questions)["answers"]     # one request
     results = client.ask_many(bodies, concurrency=16)     # many requests at once, results in input order
     client = JevClient(cache_dir=".jev-cache")            # reruns only send what is new or failed
@@ -33,6 +33,10 @@ PATH = "/v1/systemone"
 DEFAULT_MODEL = "jev-1.13.0"
 KEY_ENV = "TYPESAFE_API_KEY"
 KEY_URL = "https://console.typesafe.ai/settings/keys"
+OPENROUTER_HOST = "openrouter.ai"
+OPENROUTER_PATH = "/api/v1/systemone"
+OPENROUTER_KEY_ENV = "OPENROUTER_API_KEY"
+OPENROUTER_MODELS = {"jev-1.13.0": "typesafe/jev-1.13"}  # OpenRouter rejects TypeSafe's bare ids with HTTP 400
 RETRY_STATUSES = {429, 529}
 
 
@@ -40,12 +44,9 @@ class MissingKey(RuntimeError):
     pass
 
 
-def load_key(env_files: Iterable[str | Path] = (".env",)) -> str:
-    """Return the key from the environment, else from a KEY=value line in the given env files.
-
-    Looks only where it is told to. The value is never printed or logged.
-    """
-    key = os.environ.get(KEY_ENV)
+def find_key(name: str, env_files: Iterable[str | Path] = (".env",)) -> str | None:
+    """Return the named key from the environment, else from a NAME=value line in the given env files."""
+    key = os.environ.get(name)
     if key:
         return key
     for env_file in env_files:
@@ -53,21 +54,47 @@ def load_key(env_files: Iterable[str | Path] = (".env",)) -> str:
         if not path.is_file():
             continue
         for line in path.read_text().splitlines():
-            name, _, value = line.strip().removeprefix("export ").partition("=")
+            found, _, value = line.strip().removeprefix("export ").partition("=")
             value = value.strip().strip("\"'")
-            if name.strip() == KEY_ENV and value:
+            if found.strip() == name and value:
                 return value
+    return None
+
+
+def load_key(env_files: Iterable[str | Path] = (".env",)) -> str:
+    """Return TYPESAFE_API_KEY from the environment, else from the given env files.
+
+    Looks only where it is told to. The value is never printed or logged.
+    """
+    key = find_key(KEY_ENV, env_files)
+    if key:
+        return key
     raise MissingKey(
         f"{KEY_ENV} is not set. Create a key at {KEY_URL}, then `export {KEY_ENV}=...` "
-        f"or add `{KEY_ENV}=...` to a git-ignored .env file."
+        f"or add `{KEY_ENV}=...` to a git-ignored .env file. {OPENROUTER_KEY_ENV} also works."
     )
 
 
 class JevClient:
     def __init__(self, api_key: str | None = None, model: str = DEFAULT_MODEL, timeout: float = 30.0,
                  retries: int = 3, requests_per_minute: int = 1200, env_files: Iterable[str | Path] = (".env",),
-                 cache_dir: str | Path | None = None):
+                 cache_dir: str | Path | None = None, openrouter: bool | None = None):
+        """`openrouter=None` uses TypeSafe unless no TypeSafe key is found and OPENROUTER_API_KEY is."""
+        if openrouter is None and not api_key:
+            try:
+                api_key, openrouter = load_key(env_files), False
+            except MissingKey:
+                api_key = find_key(OPENROUTER_KEY_ENV, env_files)
+                if not api_key:
+                    raise
+                openrouter = True
+        elif openrouter and not api_key:
+            api_key = find_key(OPENROUTER_KEY_ENV, env_files)
+            if not api_key:
+                raise MissingKey(f"{OPENROUTER_KEY_ENV} is not set.")
         self.api_key = api_key or load_key(env_files)
+        self.openrouter = bool(openrouter)
+        self.host, self.path = (OPENROUTER_HOST, OPENROUTER_PATH) if self.openrouter else (HOST, PATH)
         self.model, self.timeout, self.retries = model, timeout, retries
         self._interval = 60.0 / requests_per_minute if requests_per_minute else 0.0
         self._pace_lock, self._next_start = threading.Lock(), 0.0
@@ -89,12 +116,15 @@ class JevClient:
 
     def _connection(self, fresh: bool = False) -> http.client.HTTPSConnection:
         if fresh or getattr(self._local, "connection", None) is None:
-            self._local.connection = http.client.HTTPSConnection(HOST, timeout=self.timeout)
+            self._local.connection = http.client.HTTPSConnection(self.host, timeout=self.timeout)
         return self._local.connection
 
     def ask(self, state: Any, questions: dict[str, Any], model: str | None = None) -> dict[str, Any]:
         """One request. Returns the response plus `seconds`, or {"error": ..., "status": ...}."""
-        payload = json.dumps({"model": model or self.model, "state": state, "questions": questions}, sort_keys=True)
+        model = model or self.model
+        if self.openrouter:
+            model = OPENROUTER_MODELS.get(model, model)
+        payload = json.dumps({"model": model, "state": state, "questions": questions}, sort_keys=True)
         cached = self.cache_dir / f"{hashlib.sha256(payload.encode()).hexdigest()}.json" if self.cache_dir else None
         if cached and cached.exists():
             try:
@@ -108,7 +138,7 @@ class JevClient:
             started = time.perf_counter()
             try:
                 connection = self._connection()
-                connection.request("POST", PATH, body=payload, headers=headers)
+                connection.request("POST", self.path, body=payload, headers=headers)
                 response = connection.getresponse()
                 text = response.read().decode(errors="replace")
             except (OSError, http.client.HTTPException) as error:

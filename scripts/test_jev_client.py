@@ -1,12 +1,13 @@
 """Boundary checks for preserving partial results without exposing submitted data."""
 
+import json
 import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from jev_client import JevClient, load_key
+from jev_client import JevClient, MissingKey, load_key
 
 
 class ClientTests(unittest.TestCase):
@@ -69,6 +70,41 @@ class ClientTests(unittest.TestCase):
             empty.write_text("TYPESAFE_API_KEY=''\n")
             real.write_text('TYPESAFE_API_KEY="synthetic-key"\n')
             self.assertEqual(load_key((empty, real)), "synthetic-key")
+
+    def _sent(self, client, model=None):
+        response = Mock(status=200)
+        response.read.return_value = b'{"answers":{"q":{"type":"noul","noul":0.6}}}'
+        connection = Mock()
+        connection.getresponse.return_value = response
+        with patch("jev_client.http.client.HTTPSConnection", return_value=connection) as opened:
+            client.ask("synthetic", {"q": {"type": "noul", "instructions": "A?"}}, model)
+        path, body = connection.request.call_args[0][1], connection.request.call_args[1]["body"]
+        return opened.call_args[0][0], path, json.loads(body)["model"]
+
+    def test_openrouter_key_alone_selects_openrouter(self):
+        with tempfile.TemporaryDirectory() as folder, patch.dict(os.environ, {}, clear=True):
+            env = Path(folder, ".env")
+            env.write_text("OPENROUTER_API_KEY=synthetic-router-key\n")
+            client, pack = (JevClient(env_files=(env,), retries=0, requests_per_minute=0) for _ in range(2))
+            self.assertEqual(client.api_key, "synthetic-router-key")
+            self.assertEqual(self._sent(client), ("openrouter.ai", "/api/v1/systemone", "typesafe/jev-1.13"))
+            self.assertEqual(self._sent(pack, "jev-1.13.0")[2], "typesafe/jev-1.13")
+
+    def test_typesafe_key_wins_when_both_are_set(self):
+        keys = {"TYPESAFE_API_KEY": "synthetic-key", "OPENROUTER_API_KEY": "synthetic-router-key"}
+        with patch.dict(os.environ, keys, clear=True):
+            client = JevClient(env_files=(), retries=0, requests_per_minute=0)
+        self.assertEqual(client.api_key, "synthetic-key")
+        self.assertEqual(self._sent(client), ("api.typesafe.ai", "/v1/systemone", "jev-1.13.0"))
+
+    def test_explicit_openrouter_key_and_missing_keys(self):
+        client = JevClient(api_key="synthetic-router-key", openrouter=True, retries=0, requests_per_minute=0)
+        self.assertEqual(self._sent(client, "typesafe/jev-1.13")[:2], ("openrouter.ai", "/api/v1/systemone"))
+        with patch.dict(os.environ, {}, clear=True):
+            with self.assertRaises(MissingKey):
+                JevClient(env_files=())
+            with self.assertRaises(MissingKey):
+                JevClient(env_files=(), openrouter=True)
 
 
 if __name__ == "__main__":
