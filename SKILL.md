@@ -40,7 +40,7 @@ The skill guides behavior after loading; activation depends on the host agent. U
 
 | Need | Primitive | How to use it |
 |---|---|---|
-| One selected alternative | **Choice** | Define options and the selection rule. Include no-match or unknown when appropriate. Several options may be suitable while only one must be selected. |
+| One selected alternative | **Choice** | Define options and the selection rule. Always provide a way out: `none`, `do_nothing`, or `wait`, with meaning suited to the current state. See [Choice design](references/question-design.md#choice-which-one) for fallback handling. |
 | Whether a condition holds | **Noul** | Returns P(yes). Ask one per independently needed property or candidate. Near 0.5 means uncertainty, not medium intensity. |
 | Degree along a dimension | **Score** | Use 2–10 concrete ordered levels. Apply a comparable rubric per item for ranking. The answer is a probability-weighted position on that scale. |
 

@@ -61,7 +61,17 @@ When to reach for it: neighboring options blur, a question needs worked examples
 
 ## Choice: which one?
 
-Use mutually exclusive operational outcomes. When topics overlap, specify the selection basis: primary requested remedy, best next handler, or best supported candidate. `other` means no option matches; `insufficient_context` means the evidence cannot settle it.
+Always give Choice a way out. A top-ranked option exists even when every proposed action is unsuitable. Define the fallback in criteria and handle it explicitly in code:
+
+- `none`: no supplied option fits. Retrieve missing evidence, revise the candidates, or use deeper reasoning.
+- `do_nothing`: leaving the current state unchanged is the correct outcome. End this decision without a mutation.
+- `wait`: a known pending job or event can make progress possible. Name what to wait for and resume on completion or timeout.
+
+Choose the fallback that fits the flow. Include several only when they mean different outcomes; synonymous escape options split probability. If insufficient evidence needs different handling from a known no-match, give it a separate `unknown` outcome. Define how the consumer handles uncertain results too; a fallback option does not make confidence a correctness guarantee.
+
+For action selection, supply the current state, goal, and enabled actions. Code validates the selected action against current state and permissions before execution. Bound retries and waits; route unresolved cases to recovery or deeper reasoning, asking the user only when their input is needed. A fallback ends or redirects this decision, not necessarily the user's whole task.
+
+Use mutually exclusive operational outcomes. When topics overlap, specify the selection basis: primary requested remedy, best next handler, or best supported candidate.
 
 Bad: “Classify this,” with billing, support and urgent as options. Billing is a topic, support a department, urgent an independent property.
 
